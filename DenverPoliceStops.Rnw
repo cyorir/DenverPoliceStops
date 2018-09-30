@@ -1,0 +1,89 @@
+\documentclass{article}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+\title{Hello Sweave}
+\author{cyorir}
+\date{September 22, 2018}
+
+\maketitle
+
+The purpose of this article is to serve as an example of a Sweave document. R will be used to examine a dataset from the Denver Open Data Catalog, containing data on Denver Police stops of pedestrians and vehicles. This dataset may be found at \\
+
+https://www.denvergov.org/opendata/dataset/city-and-county-of-denver-police-pedestrian-stops-and-vehicle-stops \\
+
+The dataset contains 14 columns: \\
+
+<<echo=FALSE, tidy=TRUE>>=
+data <- read.csv("police_pedestrian_stops_and_vehicle_stops.csv")
+colnames(data)
+@
+
+It is a fair bit of information to take in. Not all of the columns are necessary for this analysis, so only data for columns of interest will be kept. Here is the structure of the reduced dataset: \\
+
+<<echo=FALSE, tidy=TRUE>>=
+drop_cols <- c("MASTER_INCIDENT_NUMBER", "PRIORITY_DESCRIPTION","GEO_X", "GEO_Y", "DISTRICT_ID", "PRECINCT_ID")
+data_reduced <- data[,!colnames(data) %in% drop_cols]
+str(data_reduced, width = 60, strict.width = "cut")
+@
+
+Here are the most common addresses for pedestrian stops:\\
+
+<<echo=FALSE, tidy=TRUE>>=
+library(dplyr)
+data_subject <- data_reduced %>% filter(PROBLEM == "Subject Stop")
+tail(sort(table(data_subject$ADDRESS)))
+@
+
+Here are the most common addresses for vehicle stops:\\
+
+<<echo=FALSE, tidy=TRUE>>=
+data_vehicle <- data_reduced %>% filter(PROBLEM != "Subject Stop")
+tail(sort(table(data_vehicle$ADDRESS)))
+@
+
+Here the density of subject stops is mapped:\\
+
+<<echo=FALSE, tidy=TRUE, fig=TRUE>>=
+library(ggplot2)
+data_plot <- data_subject[,c("GEO_LON","GEO_LAT")]
+colnames(data_plot) <- c("longitude","latitude")
+ggplot(data_plot, aes(longitude, latitude) ) +
+  geom_bin2d() +
+  theme_bw() +
+  annotate(geom="text",label="Capitol", y=39.739283, x=-104.984836, color="red") +
+  annotate(geom="text",label="Thornton", y=39.864596, x=-104.973185, color="red") +
+  annotate(geom="text",label="Marston lake", y=39.629784, x=-105.071253, color="red") +
+  annotate(geom="text",label="DIA", y=39.842858, x=-104.673927, color="red") +
+  annotate(geom="text",label="Cherry Creek Reservoir", y=39.640294, x=-104.855787, color="red")
+@
+
+\newpage
+Here the density of vehicle stops is mapped:\\
+
+<<echo=FALSE, tidy=TRUE, fig=TRUE>>=
+data_plot <- data_vehicle[,c("GEO_LON","GEO_LAT")]
+colnames(data_plot) <- c("longitude","latitude")
+ggplot(data_plot, aes(longitude, latitude) ) +
+  geom_bin2d() +
+  theme_bw() +
+  annotate(geom="text",label="Capitol", y=39.739283, x=-104.984836, color="red") +
+  annotate(geom="text",label="Thornton", y=39.864596, x=-104.973185, color="red") +
+  annotate(geom="text",label="Marston lake", y=39.629784, x=-105.071253, color="red") +
+  annotate(geom="text",label="DIA", y=39.842858, x=-104.673927, color="red") +
+  annotate(geom="text",label="Cherry Creek Reservoir", y=39.640294, x=-104.855787, color="red")
+@
+
+\newpage
+We can view the number of stops over time:\\
+
+<<echo=FALSE, tidy=TRUE, fig=TRUE>>=
+library(lubridate)
+data_reduced <- data_reduced %>% mutate(Date = ymd_hms(data_reduced$TIME_PHONEPICKUP))
+ggplot(data_reduced, aes(Date) ) +
+  geom_histogram() +
+  theme_bw()
+@
+
+\end{document}
